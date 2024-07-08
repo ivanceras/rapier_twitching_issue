@@ -11,10 +11,8 @@ use bevy::render::primitives::Aabb;
 use bevy::window::PresentMode;
 use bevy::window::PrimaryWindow;
 use bevy::winit::WinitWindows;
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_obj::ObjPlugin;
 use bevy_rapier3d::prelude::*;
-use bevy_sun_gizmo::SunGizmoPlugin;
 use bevy_trackball::prelude::*;
 
 #[derive(Resource, Default)]
@@ -23,15 +21,6 @@ struct Obj {
 }
 
 fn main() {
-    let mut rapier_context = RapierContext::default();
-    /*
-    rapier_context
-        .integration_parameters
-        .normalized_max_penetration_correction = 0.01;
-    rapier_context
-        .integration_parameters
-        .num_internal_stabilization_iterations = 4;
-    */
 
     App::new()
         .add_plugins(DefaultPlugins.set(WindowPlugin {
@@ -49,11 +38,7 @@ fn main() {
         .add_systems(Update, spawn_obj)
         .add_plugins(TrackballPlugin)
         .add_plugins(TemporalAntiAliasPlugin)
-        .add_plugins(WorldInspectorPlugin::new())
-        .add_plugins(SunGizmoPlugin::default())
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
-        .add_plugins(RapierDebugRenderPlugin::default())
-        .insert_resource(rapier_context)
         .insert_resource(AmbientLight {
             color: Color::WHITE,
             brightness: 10.0,
@@ -67,7 +52,29 @@ fn show_instructions(mut commands: Commands) {
     commands.spawn((
         TextBundle::from_sections([
             TextSection::new(
-                "Press [Space] to spawn objects, Right click to move camera",
+                "bevy_rapier3d@0.26.0",
+                TextStyle {
+                    font_size: 20.0,
+                    ..default()
+                },
+            ),
+            TextSection::from_style(TextStyle {
+                font_size: 20.0,
+                color: Color::WHITE,
+                ..default()
+            }),
+        ])
+        .with_style(Style {
+            position_type: PositionType::Absolute,
+            top: Val::Px(5.0),
+            left: Val::Px(5.0),
+            ..default()
+        }),
+    ));
+    commands.spawn((
+        TextBundle::from_sections([
+            TextSection::new(
+                "Press [Space] to spawn objects, Hold [Right Click] to move camera",
                 TextStyle {
                     font_size: 20.0,
                     ..default()
@@ -117,12 +124,13 @@ fn setup(
     },));
 
     let target = Vec3::ZERO;
-    let eye = vec3(100.0, 200.0, 200.0);
+    let eye = vec3(100.0, 200.0, 400.0);
     let up = Vec3::Y;
     let mut trackball = TrackballController::default();
     trackball.input.map_wasd();
     trackball.input.reset_key = Some(KeyCode::KeyR);
     trackball.input.orbit_button = Some(MouseButton::Right);
+    trackball.input.slide_up_key = None;
 
     // camera
     commands.spawn((
@@ -248,15 +256,6 @@ fn spawn_obj(
                     RigidBody::Dynamic,
                     collider,
                     GravityScale(20.0),
-                    Ccd::enabled(),
-                    Friction {
-                        coefficient: 20.0,
-                        combine_rule: CoefficientCombineRule::Average,
-                    },
-                    Restitution {
-                        coefficient: 0.0,
-                        combine_rule: CoefficientCombineRule::Average,
-                    },
                 ));
             }
         }
